@@ -1,0 +1,48 @@
+#!/usr/bin/env python
+
+from getpass import getpass
+from netmiko import ConnectHandler
+import paramiko
+import os.path
+import time
+
+username = raw_input('Enter your SSH username: ')
+password = getpass()
+
+username1 = raw_input('Enter your username for share folder: ')
+password1 = getpass()
+
+#with open('commands_file') as f:
+    #commands_list = f.read().splitlines()
+
+with open('devices_file') as f:
+    devices_list = f.read().splitlines()
+
+for devices in devices_list:
+    print 'Connecting to device" ' + devices
+    ip_address_of_device = devices
+    ios_device = {
+        'device_type': 'cisco_ios',
+        'ip': ip_address_of_device,
+        'username': username,
+        'password': password
+    }
+
+    net_connect = ConnectHandler(**ios_device)
+    output = net_connect.send_command('show run')
+
+
+# to connect to shar folder and write the configuration there
+
+    client = paramiko.SSHClient()
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname = '192.168.100.2', port= 22, username = username1, password = password1)
+    sftp = client.open_sftp()
+    save_file = ('/home/pox/network/')
+    file_name = ('switch' + ' ' + devices + ' ' + time.strftime('%c'))
+    fullname= os.path.join(save_file, file_name)
+    saveoutput = sftp.open(fullname, 'w')
+    saveoutput.write(output)
+    saveoutput.write('\n')
+    saveoutput.close()
